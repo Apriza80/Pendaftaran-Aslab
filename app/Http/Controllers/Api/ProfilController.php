@@ -30,4 +30,51 @@ class ProfilController extends Controller
             'data' => $profil
         ]);
     }
+    public function show($id)
+    {
+        $profil = Profil::where('user_id', $id)->first();
+
+        if (!$profil) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Profil tidak ditemukan'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $profil
+        ]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $profil = Profil::find($id);
+
+        if (!$profil) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Profil tidak ditemukan'
+            ], 404);
+        }
+
+        $profil->update([
+
+            'nim' => $request->nim,
+            'kelas' => $request->kelas,
+            'jenis_kelamin' => $request->jenis_kelamin,
+            'tempat_lahir' => $request->tempat_lahir,
+            'tanggal_lahir' => $request->tanggal_lahir,
+            'alamat_lengkap' => $request->alamat_lengkap,
+            'tahun_kelulusan' => $request->tahun_kelulusan,
+            'alasan_daftar' => $request->alasan_daftar
+
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil berhasil diupdate',
+            'data' => $profil
+        ]);
+    }
 }

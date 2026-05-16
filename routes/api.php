@@ -10,3 +10,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::post('/profil', [ProfilController::class, 'store']);
+
+Route::get('/profil/{id}', [ProfilController::class, 'show']);
+
+Route::put('/profil/{id}', [ProfilController::class, 'update']);
