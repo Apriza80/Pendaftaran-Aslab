@@ -15,4 +15,13 @@ class SoalCbt extends Model
     {
         return $this->hasMany(JawabanCbt::class);
     }
+    protected $fillable = [
+        'pertanyaan',
+        'opsi_a',
+        'opsi_b',
+        'opsi_c',
+        'opsi_d',
+        'jawaban_benar',
+        'admin_id'
+    ];
 }

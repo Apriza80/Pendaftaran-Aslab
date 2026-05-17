@@ -20,4 +20,9 @@ class Admin extends Model
     {
         return $this->hasMany(Wawancara::class);
     }
+    protected $fillable = [
+        'nama',
+        'email',
+        'password'
+    ];
 }
