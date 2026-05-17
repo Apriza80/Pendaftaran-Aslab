@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProfilController;
+use App\Http\Controllers\Api\DokumenController;
 
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -14,3 +15,5 @@ Route::post('/profil', [ProfilController::class, 'store']);
 Route::get('/profil/{id}', [ProfilController::class, 'show']);
 
 Route::put('/profil/{id}', [ProfilController::class, 'update']);
+
+Route::post('/dokumen', [DokumenController::class, 'store']);
