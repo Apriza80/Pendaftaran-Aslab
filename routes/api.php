@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AdminAuthController;
 use App\Http\Controllers\Api\CbtController;
 use App\Http\Controllers\Api\SeleksiController;
 use App\Http\Controllers\Api\WawancaraController;
+use App\Http\Controllers\Api\NotifikasiController;
 
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -32,3 +33,6 @@ Route::post('/seleksi', [SeleksiController::class, 'updateStatus']);
 
 Route::post('/wawancara', [WawancaraController::class, 'store']);
 Route::get('/wawancara/{user_id}', [WawancaraController::class, 'show']);
+
+Route::post('/notifikasi', [NotifikasiController::class, 'store']);
+Route::get('/notifikasi/{user_id}', [NotifikasiController::class, 'getNotif']);

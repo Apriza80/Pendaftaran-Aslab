@@ -10,4 +10,10 @@ class Notifikasi extends Model
     {
         return $this->belongsTo(User::class);
     }
+    protected $fillable = [
+        'user_id',
+        'judul',
+        'pesan',
+        'status_baca'
+    ];
 }
