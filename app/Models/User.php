@@ -77,5 +77,8 @@ class User extends Authenticatable
     {
         return $this->hasMany(Seleksi::class);
     }
-
+    public function seleksi()
+    {
+        return $this->hasOne(Seleksi::class);
+    }
 }

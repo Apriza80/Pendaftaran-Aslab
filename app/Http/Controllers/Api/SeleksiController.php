@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Seleksi;
+use App\Models\User;
 
 class SeleksiController extends Controller
 {
@@ -29,6 +30,20 @@ class SeleksiController extends Controller
             'success' => true,
             'message' => 'Status seleksi berhasil diupdate',
             'data' => $seleksi
+        ]);
+    }
+    public function pengumuman()
+    {
+
+        $users = User::whereHas('seleksi', function ($query) {
+
+            $query->where('status_seleksi', 'Final Lolos');
+
+        })->with('seleksi')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $users
         ]);
     }
 

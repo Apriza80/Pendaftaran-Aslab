@@ -36,3 +36,5 @@ Route::get('/wawancara/{user_id}', [WawancaraController::class, 'show']);
 
 Route::post('/notifikasi', [NotifikasiController::class, 'store']);
 Route::get('/notifikasi/{user_id}', [NotifikasiController::class, 'getNotif']);
+
+Route::get('/pengumuman', [SeleksiController::class, 'pengumuman']);
