@@ -15,4 +15,13 @@ class Wawancara extends Model
     {
         return $this->belongsTo(Admin::class);
     }
+    protected $fillable = [
+        'user_id',
+        'jadwal',
+        'lokasi',
+        'link_meeting',
+        'hasil',
+        'catatan',
+        'admin_id'
+    ];
 }

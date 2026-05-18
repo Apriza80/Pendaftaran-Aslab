@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\DokumenController;
 use App\Http\Controllers\Api\AdminAuthController;
 use App\Http\Controllers\Api\CbtController;
 use App\Http\Controllers\Api\SeleksiController;
+use App\Http\Controllers\Api\WawancaraController;
 
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -28,3 +29,6 @@ Route::post('/soal', [CbtController::class, 'storeSoal']);
 Route::get('/soal/{user_id}', [CbtController::class, 'getSoal']);
 
 Route::post('/seleksi', [SeleksiController::class, 'updateStatus']);
+
+Route::post('/wawancara', [WawancaraController::class, 'store']);
+Route::get('/wawancara/{user_id}', [WawancaraController::class, 'show']);
