@@ -131,9 +131,17 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.pop(context); // Menutup loading spinner
 
       if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        
+        // KOREKSI BERHASIL: Mengambil isi object 'data' dari JSON backend (berisi nama, email, no_hp)
+        final Map<String, dynamic> userProfile = responseData['data']; 
+
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          MaterialPageRoute(
+            builder: (context) => DashboardScreen(userData: userProfile),
+          ),
         );
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -155,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context); // Menutup loading spinner
+      Navigator.pop(context); // Menutup loading spinner jika terjadi crash/error jaringan
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -298,7 +306,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   bottom: 20.0,
                 ),
                 child: Column(
-                  // KOREKSI: Typo 'cross CrossAxisAlignment' sudah diperbaiki menjadi parameter valid
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Label Email

@@ -7,7 +7,10 @@ import 'edit_profil_screen.dart';
 import 'change_password_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  // Menambahkan properti penampung lemparan data profil dari LoginScreen
+  final Map<String, dynamic>? userData;
+
+  const DashboardScreen({super.key, this.userData});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -16,16 +19,24 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // --- LOGIKA TAHAPAN (Simulasi Data dari Backend) ---
-  // 0: Belum Lengkap, 1: Berkas Disetujui, 2: Selesai CBT
-  int tahapPendaftaran = 1;
-  
+  // Mengonversi status langkah pendaftaran string dari Laravel menjadi angka integer
+  int get tahapPendaftaran {
+    // Membaca status_step dari backend. Default jika kosong adalah 'administrasi' (0)
+    String statusStr = widget.userData?['status_step'] ?? 'administrasi';
+
+    if (statusStr == 'cbt') {
+      return 1; // Berkas disetujui, dipersilakan ikut CBT
+    } else if (statusStr == 'lolos' || statusStr == 'wawancara') {
+      return 2; // Selesai CBT / Lolos ke tahap wawancara & jadwal terbuka
+    }
+    return 0; // Tahap awal berkas administrasi dalam verifikasi
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF8FAFF), // Warna background lebih modern
+      backgroundColor: const Color(0xFFF8FAFF),
       drawer: _buildDrawer(),
       body: SingleChildScrollView(
         child: Column(
@@ -79,16 +90,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           "Selamat Datang,",
                           style: TextStyle(color: Colors.white70, fontSize: 14),
                         ),
-                        const Text(
-                          "Mahasiswa UMSIDA",
-                          style: TextStyle(
+                        // PERBAIKAN: Diubah menggunakan key ['nama'] sesuai JSON backend kamu
+                        Text(
+                          widget.userData?['nama'] ?? "Mahasiswa UMSIDA",
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                        // PERBAIKAN: Diubah menggunakan key ['no_hp'] sesuai JSON backend kamu
                         Text(
-                          "NIM: 221080200XXX",
+                          "Phone: ${widget.userData?['no_hp'] ?? '-'}",
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.6),
                             fontSize: 12,
@@ -114,7 +127,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             const SizedBox(height: 20),
 
-            // 3. MENU UTAMA DENGAN LOGIKA PENGUNCIAN
+            // 3. MENU UTAMA DENGAN LOGIKA PENGUNCIAN BACKEND
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 25),
               child: Column(
@@ -136,7 +149,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisSpacing: 15,
                     mainAxisSpacing: 15,
                     children: [
-                      // MENU 1: Selalu Terbuka
+                      // MENU 1: Selalu Terbuka untuk edit/isi pendaftaran
                       _buildMenuCard(
                         context,
                         "Daftar Aslab",
@@ -163,7 +176,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         tahapPendaftaran >= 1,
                         const KartuUjianScreen(),
                       ),
-                      // MENU 4: Terbuka jika CBT Selesai (Tahap >= 2)
+                      // MENU 4: Terbuka jika CBT Selesai / Lolos (Tahap >= 2)
                       _buildMenuCard(
                         context,
                         "Jadwal",
@@ -261,7 +274,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // --- WIDGET: KARTU MENU DENGAN LOGIKA KUNCI ---
-  // --- WIDGET: KARTU MENU DENGAN LOGIKA KUNCI ---
   Widget _buildMenuCard(
     BuildContext context,
     String title,
@@ -292,6 +304,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     content: Text(
                       "Menu $title terkunci. Selesaikan tahap sebelumnya!",
                     ),
+                    behavior: SnackBarBehavior.floating,
                   ),
                 ),
           child: Opacity(
@@ -308,11 +321,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           color: color.withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(
-                          icon,
-                          size: 35,
-                          color: color,
-                        ), // <-- KODE INI SUDAH DIKEMBALIKAN
+                        child: Icon(icon, size: 35, color: color),
                       ),
                       const SizedBox(height: 10),
                       Text(
@@ -355,16 +364,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
               backgroundColor: Colors.white,
               child: Icon(Icons.person, size: 45, color: Color(0xFF0D47A1)),
             ),
-            accountName: const Text(
-              "Mahasiswa UMSIDA",
-              style: TextStyle(fontWeight: FontWeight.bold),
+            // PERBAIKAN: Sinkronisasi Teks Nama menggunakan key ['nama'] dari backend
+            accountName: Text(
+              widget.userData?['nama'] ?? "Mahasiswa UMSIDA",
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            accountEmail: const Text("221080200XXX@umsida.ac.id"),
+            // PERBAIKAN: Sinkronisasi Teks Email menggunakan key ['email'] dari backend
+            accountEmail: Text(
+              widget.userData?['email'] ?? "email@student.umsida.ac.id",
+            ),
           ),
 
-          // DI SINI YANG PERBAIKAN: Fungsi Klik Edit Profil Dihidupkan
           _buildSidebarItem(Icons.manage_accounts, "Edit Profil", () {
-            Navigator.pop(context); // Tutup drawer dulu
+            Navigator.pop(context);
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -373,9 +385,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             );
           }),
 
-          // DI SINI YANG PERBAIKAN: Fungsi Klik Ubah Password Dihidupkan
           _buildSidebarItem(Icons.lock_reset, "Ubah Password", () {
-            Navigator.pop(context); // Tutup drawer dulu
+            Navigator.pop(context);
             Navigator.push(
               context,
               MaterialPageRoute(
