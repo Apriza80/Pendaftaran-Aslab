@@ -14,7 +14,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
   // ===================================================================
   final String _namaPendaftar = "Mahasiswa UMSIDA"; // 1. Nama
   final String _tanggalWawancara =
-      "Senin, 27 April 2026"; // 2. Jadwal (Tanggal)
+      "Senin, 28 April 2026"; // 2. Jadwal (Tanggal)
   final String _jamWawancara = "09:00 - 10:00 WIB"; // 2. Jadwal (Jam)
   final String _lokasiWawancara = "Lab Komputer 2 (Gedung G)"; // 3. Lokasi
   final String _linkMeeting =
