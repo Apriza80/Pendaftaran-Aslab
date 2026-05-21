@@ -4,7 +4,6 @@ import 'cbt_screen.dart';
 import 'kartu_ujian_screen.dart';
 import 'jadwal_screen.dart';
 import 'edit_profil_screen.dart';
-import 'change_password_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   // Menambahkan properti penampung lemparan data profil dari LoginScreen
@@ -376,25 +375,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
 
           _buildSidebarItem(Icons.manage_accounts, "Edit Profil", () {
-            Navigator.pop(context);
+            Navigator.pop(context); // Tutup drawer sidebar
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const EditProfileScreen(),
+                // PERBAIKAN: Mengoper data profil akun dari dashboard ke halaman edit profil
+                builder: (context) =>
+                    EditProfileScreen(userData: widget.userData),
               ),
             );
           }),
 
-          _buildSidebarItem(Icons.lock_reset, "Ubah Password", () {
-            Navigator.pop(context);
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const ChangePasswordScreen(),
-              ),
-            );
-          }),
-
+          
           _buildSidebarItem(
             Icons.chat_bubble_outline,
             "Hubungi Admin Lab",

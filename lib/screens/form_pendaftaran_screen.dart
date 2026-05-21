@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart'; // Tambahan untuk mengambil file asli dari HP
+import 'package:file_picker/file_picker.dart';
+import 'package:http/http.dart'
+    as http; // Import untuk menangani koneksi internet API
+import 'dart:convert';
 
 class FormPendaftaranScreen extends StatefulWidget {
   const FormPendaftaranScreen({super.key});
@@ -11,8 +14,25 @@ class FormPendaftaranScreen extends StatefulWidget {
 class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
   String? _jenisKelamin;
 
-  // Tempat menyimpan nama file yang diupload secara dinamis
-  final Map<String, String?> _selectedFiles = {
+  // Controller untuk menangkap teks di setiap kolom input
+  final TextEditingController _namaController = TextEditingController();
+  final TextEditingController _nimController = TextEditingController();
+  final TextEditingController _kelasController = TextEditingController();
+  final TextEditingController _alamatController = TextEditingController();
+  final TextEditingController _whatsappController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _tempatLahirController = TextEditingController();
+  final TextEditingController _tanggalLahirController = TextEditingController();
+  final TextEditingController _tahunLulusController = TextEditingController();
+  final TextEditingController _githubController = TextEditingController();
+  final TextEditingController _linkedinController = TextEditingController();
+  final TextEditingController _portfolioController = TextEditingController();
+  final TextEditingController _deskripsiProjectController =
+      TextEditingController();
+  final TextEditingController _alasanDaftarController = TextEditingController();
+
+  // Menyimpan objek PlatformFile secara utuh agar jalurnya (path) bisa dibaca saat upload
+  final Map<String, PlatformFile?> _selectedFiles = {
     "KTM": null,
     "Foto": null,
     "Ijazah": null,
@@ -26,15 +46,15 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
     List<String>? allowedExtensions,
   ) async {
     try {
+      WidgetsFlutterBinding.ensureInitialized();
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: allowedExtensions != null ? FileType.custom : FileType.any,
         allowedExtensions: allowedExtensions,
       );
 
-      if (result != null && result.files.single.name != null) {
+      if (result != null && result.files.single.path != null) {
         setState(() {
-          // Simpan nama file asli ke dalam state untuk ditampilkan di UI
-          _selectedFiles[key] = result.files.single.name;
+          _selectedFiles[key] = result.files.single;
         });
       }
     } catch (e) {
@@ -42,6 +62,135 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text("Gagal mengambil file: $e")));
     }
+  }
+
+  // FUNGSI UTAMA SINKRONISASI API LARAVEL BACKEND
+  Future<void> _kirimPendaftaranKeBackend() async {
+    // Validasi dasar field penting wajib diisi
+    if (_namaController.text.isEmpty ||
+        _nimController.text.isEmpty ||
+        _whatsappController.text.isEmpty ||
+        _jenisKelamin == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Mohon isi Data Diri wajib Anda (Nama, NIM, No. WA, Jenis Kelamin)!",
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // Menampilkan loading spinner indikator proses jaringan
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF0D47A1)),
+      ),
+    );
+
+    // URL Endpoint API Pendaftaran Aslab di Laravel temanmu
+    String urlEndpoint = "http://10.21.0.180:8000/api/pendaftaran";
+
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse(urlEndpoint));
+
+      // PERBAIKAN: Paksa Laravel merespon dalam format JSON (menghindari error HTML)
+      request.headers['Accept'] = 'application/json';
+
+      // PERBAIKAN: Kirim 'user_id' default (Wajib ada agar query Profil::create di backend tidak crash)
+      request.fields['user_id'] = "1";
+
+      // A. Memasukkan data INPUTAN TEKS (Disamakan dengan nama request di Controller Laravel baru)
+      request.fields['nama'] = _namaController.text;
+      request.fields['nim'] = _nimController.text;
+      request.fields['kelas'] = _kelasController.text;
+      request.fields['jenis_kelamin'] = _jenisKelamin!;
+      request.fields['tempat_lahir'] = _tempatLahirController.text;
+      request.fields['tanggal_lahir'] = _tanggalLahirController.text;
+      request.fields['email'] = _emailController.text;
+      request.fields['alasan_daftar'] = _alasanDaftarController.text;
+      request.fields['deskripsi_project'] = _deskripsiProjectController.text;
+      request.fields['link_github'] = _githubController.text;
+      request.fields['link_linkedin'] = _linkedinController.text;
+      request.fields['link_portfolio'] = _portfolioController.text;
+
+      // KOREKSI UTAMA: Menyelaraskan nama key teks field agar terbaca controller backend temanmu
+      request.fields['alamat_lengkap'] = _alamatController.text;
+      request.fields['tahun_kelulusan'] = _tahunLulusController.text;
+      request.fields['no_wa'] = _whatsappController.text;
+
+      // B. Memasukkan FILE BERKAS FISIK (Nama key 'CV' dan 'KTM' sudah pas)
+      for (var entry in _selectedFiles.entries) {
+        if (entry.value != null && entry.value!.path != null) {
+          request.files.add(
+            await http.MultipartFile.fromPath(entry.key, entry.value!.path!),
+          );
+        }
+      }
+
+      // C. Eksekusi kirim data paket ke server backend
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (!mounted) return;
+      Navigator.pop(context); // Menutup loading spinner
+
+      // Memeriksa respon sukses dari server Laravel
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _showSuccessDialog(context);
+      } else {
+        // Cetak log error JSON asli jika validasi database ditolak
+        print("====== ERROR DARI LARAVEL ======");
+        print(response.statusCode);
+        print(response.body);
+        print("================================");
+
+        final errorData = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              errorData['message'] ??
+                  "Gagal mengirim pendaftaran, cek kolom data database.",
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Menutup loading spinner jika koneksi error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error Jaringan: Gagal terhubung ke Laravel ($e)"),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _namaController.dispose();
+    _nimController.dispose();
+    _kelasController.dispose();
+    _alamatController.dispose();
+    _whatsappController.dispose();
+    _emailController.dispose();
+    _tempatLahirController.dispose();
+    _tanggalLahirController.dispose();
+    _tahunLulusController.dispose();
+    _githubController.dispose();
+    _linkedinController.dispose();
+    _portfolioController.dispose();
+    _deskripsiProjectController.dispose();
+    _alasanDaftarController.dispose();
+    super.dispose();
   }
 
   @override
@@ -60,12 +209,39 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildSectionTitle("1. Data Diri Mahasiswa"),
-              _buildTextField("Nama Lengkap", Icons.person),
-              _buildTextField("NIM", Icons.badge, isNumber: true),
-              _buildTextField("Kelas", Icons.class_),
-              _buildTextField("Alamat Lengkap", Icons.home, maxLines: 2),
-              _buildTextField("No. WhatsApp", Icons.phone, isNumber: true),
-              _buildTextField("Email", Icons.email),
+              _buildTextField(
+                "Nama Lengkap",
+                Icons.person,
+                controller: _namaController,
+              ),
+              _buildTextField(
+                "NIM",
+                Icons.badge,
+                isNumber: true,
+                controller: _nimController,
+              ),
+              _buildTextField(
+                "Kelas",
+                Icons.class_,
+                controller: _kelasController,
+              ),
+              _buildTextField(
+                "Alamat Lengkap",
+                Icons.home,
+                maxLines: 2,
+                controller: _alamatController,
+              ),
+              _buildTextField(
+                "No. WhatsApp",
+                Icons.phone,
+                isNumber: true,
+                controller: _whatsappController,
+              ),
+              _buildTextField(
+                "Email",
+                Icons.email,
+                controller: _emailController,
+              ),
 
               const SizedBox(height: 10),
               const Text(
@@ -89,24 +265,32 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
                 ],
               ),
 
-              _buildTextField("Tempat Lahir", Icons.location_city),
-              _buildTextField("Tanggal Lahir", Icons.calendar_today),
+              _buildTextField(
+                "Tempat Lahir",
+                Icons.location_city,
+                controller: _tempatLahirController,
+              ),
+              _buildTextField(
+                "Tanggal Lahir",
+                Icons.calendar_today,
+                controller: _tanggalLahirController,
+              ),
               _buildTextField(
                 "Tahun Kelulusan (SMA/SMK)",
                 Icons.school,
                 isNumber: true,
+                controller: _tahunLulusController,
               ),
 
               const SizedBox(height: 20),
               _buildSectionTitle("2. Upload Dokumen (Wajib)"),
 
-              // KOREKSI: Sekarang tile upload dokumen di bawah ini bisa diklik & memicu FilePicker
               _buildUploadTile(
                 label: "Upload KTM",
                 keyName: "KTM",
                 defaultFormat: "Gambar/PDF",
                 onTap: () =>
-                    _pilihDokumen("KTM", ['pdf', 'png', 'jpg', 'jpeg']),
+                    _pimmingDokumen("KTM", ['pdf', 'png', 'jpg', 'jpeg']),
               ),
               _buildUploadTile(
                 label: "Upload Foto 4x6",
@@ -136,24 +320,36 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
 
               const SizedBox(height: 20),
               _buildSectionTitle("3. Project & Portofolio"),
-              _buildTextField("Link GitHub", Icons.code, isOptional: true),
-              _buildTextField("Link LinkedIn", Icons.link, isOptional: true),
+              _buildTextField(
+                "Link GitHub",
+                Icons.code,
+                isOptional: true,
+                controller: _githubController,
+              ),
+              _buildTextField(
+                "Link LinkedIn",
+                Icons.link,
+                isOptional: true,
+                controller: _linkedinController,
+              ),
               _buildTextField(
                 "Link Portofolio Website",
                 Icons.language,
                 isOptional: true,
+                controller: _portfolioController,
               ),
 
-              // KOREKSI: Upload File Project (Zip) sudah dihapus total dari sini sesuai request
               _buildTextField(
                 "Deskripsi Project",
                 Icons.description,
                 maxLines: 3,
+                controller: _deskripsiProjectController,
               ),
               _buildTextField(
                 "Alasan Daftar Aslab",
                 Icons.question_answer,
                 maxLines: 3,
+                controller: _alasanDaftarController,
               ),
 
               const SizedBox(height: 30),
@@ -161,7 +357,7 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: () => _showSuccessDialog(context),
+                  onPressed: _kirimPendaftaranKeBackend,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0D47A1),
                     shape: RoundedRectangleBorder(
@@ -203,6 +399,7 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
   Widget _buildTextField(
     String label,
     IconData icon, {
+    required TextEditingController controller,
     bool isNumber = false,
     int maxLines = 1,
     bool isOptional = false,
@@ -210,6 +407,7 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: TextField(
+        controller: controller,
         maxLines: maxLines,
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
         decoration: InputDecoration(
@@ -221,14 +419,12 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
     );
   }
 
-  // Helper Widget Pembuat Tempat Upload yang Bisa Diklik Dinamis
   Widget _buildUploadTile({
     required String label,
     required String keyName,
     required String defaultFormat,
     required VoidCallback onTap,
   }) {
-    // Mengecek apakah pendaftar sudah memilih file atau belum
     bool fileSudahDipilih = _selectedFiles[keyName] != null;
 
     return Padding(
@@ -274,7 +470,7 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
                     const SizedBox(height: 2),
                     Text(
                       fileSudahDipilih
-                          ? "${_selectedFiles[keyName]}" // Tampilkan nama file asli HP pendaftar
+                          ? "${_selectedFiles[keyName]!.name}"
                           : "Format wajib: $defaultFormat",
                       style: TextStyle(
                         fontSize: 12,
@@ -300,6 +496,10 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
     );
   }
 
+  void _pimmingDokumen(String key, List<String> extensions) {
+    _pilihDokumen(key, extensions);
+  }
+
   void _showSuccessDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -310,8 +510,8 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // Tutup Dialog
-              Navigator.pop(context); // Kembali ke Dashboard Screen
+              Navigator.pop(context);
+              Navigator.pop(context);
             },
             child: const Text(
               "OK",

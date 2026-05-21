@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class EditProfileScreen extends StatefulWidget {
   // Menangkap lemparan paket data registrasi/login asli dari Dashboard
@@ -30,7 +32,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // PERBAIKAN: Inisialisasi data ditarik secara presisi dari JSON backend kamu ('nama' dan 'no_hp')
+    // PERBAIKAN UTAMA: Mengunci data otomatis ditarik presisi dari key JSON backend ('nama' dan 'no_hp')
     _namaController = TextEditingController(
       text: widget.userData?['nama'] ?? "",
     );
@@ -212,7 +214,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                     const SizedBox(height: 35),
 
-                    // ================= TOMBOL UTAMA SIMPAN PROFIL =================
+                    // ================= TOMBOL UTAMA SIMPAN PROFIL KONEKSI API =================
                     SizedBox(
                       width: double.infinity,
                       height: 52,
@@ -309,8 +311,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  // Fungsi Evaluasi Validasi saat Klik Simpan Perubahan dilakukan
-  void _prosesSimpanPerubahan() {
+  // PERBAIKAN: Fungsi Pengiriman Sinkronisasi Data Baru Menuju Jaringan API Laravel Backend
+  Future<void> _prosesSimpanPerubahan() async {
     if (_namaController.text.isEmpty ||
         _emailController.text.isEmpty ||
         _phoneController.text.isEmpty) {
@@ -324,7 +326,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
-    // Jika pengguna mencoba mengisi form ganti password
     if (_oldPasswordController.text.isNotEmpty ||
         _newPasswordController.text.isNotEmpty ||
         _confirmPasswordController.text.isNotEmpty) {
@@ -350,16 +351,70 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     }
 
-    // Tampilkan notifikasi berhasil diperbarui
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Profil & Keamanan Berhasil Diperbarui!"),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
+    // Tampilkan Loading Indikator Koneksi
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF0D47A1)),
       ),
     );
-    Navigator.pop(
-      context,
-    ); // Kembali ke dashboard setelah data berhasil di-update
+
+    // Endpoint Dinamis Berdasarkan ID Akun yang sedang Login
+    int userId = widget.userData?['id'] ?? 1;
+    String urlEndpoint = "http://10.21.0.180:8000/api/update-profile/$userId";
+
+    try {
+      final response = await http.post(
+        Uri.parse(urlEndpoint),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "nama": _namaController.text,
+          "email": _emailController.text,
+          "no_hp": _phoneController.text,
+          "old_password": _oldPasswordController.text,
+          "new_password": _newPasswordController.text,
+        }),
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Tutup Loading Spinner
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Profil & Keamanan Berhasil Diperbarui ke Database Server!",
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Navigator.pop(context); // Kembali ke halaman Dashboard Utama
+      } else {
+        final errorData = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              errorData['message'] ?? 'Gagal memperbarui data profil.',
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Tutup Loading Spinner
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Error Hubungan Jaringan: Gagal terhubung ke Laravel ($e)",
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 }
