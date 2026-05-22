@@ -3,9 +3,15 @@ import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart'
     as http; // Import untuk menangani koneksi internet API
 import 'dart:convert';
+import 'api_config.dart'; // Memanggil file konfigurasi pusat agar alamat IP seragam
 
 class FormPendaftaranScreen extends StatefulWidget {
-  const FormPendaftaranScreen({super.key});
+  // =========================================================================
+  // PERBAIKAN UTAMA: Menambahkan variabel penampung id user asli hasil login
+  // =========================================================================
+  final String userId;
+
+  const FormPendaftaranScreen({super.key, required this.userId});
 
   @override
   State<FormPendaftaranScreen> createState() => _FormPendaftaranScreenState();
@@ -92,25 +98,32 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
       ),
     );
 
-    // URL Endpoint API Pendaftaran Aslab di Laravel temanmu
-    String urlEndpoint = "http://10.21.0.180:8000/api/pendaftaran";
-
     try {
-      var request = http.MultipartRequest('POST', Uri.parse(urlEndpoint));
+      // Menggunakan ApiConfig.pendaftaran sebagai kontrol URL terpusat
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse(ApiConfig.pendaftaran),
+      );
 
-      // PERBAIKAN: Paksa Laravel merespon dalam format JSON (menghindari error HTML)
+      // Paksa Laravel merespon dalam format JSON (menghindari error HTML)
       request.headers['Accept'] = 'application/json';
 
-      // PERBAIKAN: Kirim 'user_id' default (Wajib ada agar query Profil::create di backend tidak crash)
-      request.fields['user_id'] = "1";
+      // Mengirimkan USER_ID DINAMIS asli milik user yang login
+      request.fields['user_id'] = widget.userId;
 
-      // A. Memasukkan data INPUTAN TEKS (Disamakan dengan nama request di Controller Laravel baru)
-      request.fields['nama'] = _namaController.text;
+      // =========================================================================
+      // PROSES SINKRONISASI TOTAL: MENYAMAKAN KEY FLUTTER DENGAN REQUEST LARAVEL
+      // =========================================================================
+      request.fields['nama_lengkap'] =
+          _namaController.text; // Sesuai pembaruan $request->nama_lengkap
       request.fields['nim'] = _nimController.text;
       request.fields['kelas'] = _kelasController.text;
       request.fields['jenis_kelamin'] = _jenisKelamin!;
       request.fields['tempat_lahir'] = _tempatLahirController.text;
+
+      // PERBAIKAN UTAMA: Langsung kirim teks asli dari inputan tanpa diotak-atik lagi
       request.fields['tanggal_lahir'] = _tanggalLahirController.text;
+
       request.fields['email'] = _emailController.text;
       request.fields['alasan_daftar'] = _alasanDaftarController.text;
       request.fields['deskripsi_project'] = _deskripsiProjectController.text;
@@ -118,12 +131,16 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
       request.fields['link_linkedin'] = _linkedinController.text;
       request.fields['link_portfolio'] = _portfolioController.text;
 
-      // KOREKSI UTAMA: Menyelaraskan nama key teks field agar terbaca controller backend temanmu
-      request.fields['alamat_lengkap'] = _alamatController.text;
-      request.fields['tahun_kelulusan'] = _tahunLulusController.text;
-      request.fields['no_wa'] = _whatsappController.text;
+      // DISINKRONKAN: Menyesuaikan 3 field teks yang sebelumnya beda nama dengan Laravel temanmu
+      request.fields['alamat'] =
+          _alamatController.text; // Pas dengan $request->alamat
+      request.fields['tahun_lulus_sma'] =
+          _tahunLulusController.text; // Pas dengan $request->tahun_lulus_sma
+      request.fields['no_hp'] =
+          _whatsappController.text; // Pas dengan $request->no_hp
+      // =========================================================================
 
-      // B. Memasukkan FILE BERKAS FISIK (Nama key 'CV' dan 'KTM' sudah pas)
+      // B. Memasukkan FILE BERKAS FISIK (Key 'CV', 'KTM', 'Foto', etc., sudah cocok dengan hasFile di Laravel)
       for (var entry in _selectedFiles.entries) {
         if (entry.value != null && entry.value!.path != null) {
           request.files.add(
@@ -139,22 +156,22 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
       if (!mounted) return;
       Navigator.pop(context); // Menutup loading spinner
 
-      // Memeriksa respon sukses dari server Laravel
+      // Memeriksa respon sukses dari server Laravel (Status 201 Created sesuai return backend)
       if (response.statusCode == 200 || response.statusCode == 201) {
         _showSuccessDialog(context);
       } else {
-        // Cetak log error JSON asli jika validasi database ditolak
-        print("====== ERROR DARI LARAVEL ======");
-        print(response.statusCode);
-        print(response.body);
-        print("================================");
+        // Cetak log error JSON asli di terminal debug jika database menolak kiriman data
+        print("====== ERROR DATA DARI LARAVEL ======");
+        print("Status Code: ${response.statusCode}");
+        print("Response Body: ${response.body}");
+        print("=====================================");
 
         final errorData = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               errorData['message'] ??
-                  "Gagal mengirim pendaftaran, cek kolom data database.",
+                  "Gagal mengirim pendaftaran, cek kecocokan kolom tabel MySQL.",
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
@@ -290,7 +307,7 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
                 keyName: "KTM",
                 defaultFormat: "Gambar/PDF",
                 onTap: () =>
-                    _pimmingDokumen("KTM", ['pdf', 'png', 'jpg', 'jpeg']),
+                    _pilihDokumen("KTM", ['pdf', 'png', 'jpg', 'jpeg']),
               ),
               _buildUploadTile(
                 label: "Upload Foto 4x6",
@@ -496,10 +513,6 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
     );
   }
 
-  void _pimmingDokumen(String key, List<String> extensions) {
-    _pilihDokumen(key, extensions);
-  }
-
   void _showSuccessDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -510,8 +523,8 @@ class _FormPendaftaranScreenState extends State<FormPendaftaranScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
+              Navigator.pop(context); // Tutup dialog sukses
+              Navigator.pop(context); // Pulang kembali ke halaman Dashboard
             },
             child: const Text(
               "OK",

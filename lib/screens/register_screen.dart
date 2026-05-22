@@ -47,7 +47,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
 
     // URL Endpoint IP Jaringan Wi-Fi Resmi dari Laptop Backend
-    String urlEndpoint = "http://10.21.0.180:8000/api/register";
+    String urlEndpoint = "http://10.21.2.14:8000/api/register";
 
     try {
       // Proses POST data akun baru ke server Laravel

@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'register_screen.dart';
 import 'dashboard_screen.dart';
+import 'api_config.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -92,8 +93,9 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Fungsi Kirim Data Login Terintegrasi Backend Asli
+  // Fungsi Login yang Terhubung Aktif ke Server Laravel Backend Temanmu
   Future<void> _prosesLogin() async {
+    // Validasi form kosong
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -105,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // Menampilkan loading spinner indikator proses jaringan
+    // Tampilkan loading spinner indikator proses jaringan
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -114,13 +116,13 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
 
-    // Endpoint IP Wi-Fi Backend Resmi
-    String urlEndpoint = "http://10.21.0.180:8000/api/login";
-
     try {
       final response = await http.post(
-        Uri.parse(urlEndpoint),
-        headers: {"Content-Type": "application/json"},
+        Uri.parse(ApiConfig.login),
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
         body: jsonEncode({
           "email": _emailController.text,
           "password": _passwordController.text,
@@ -128,13 +130,30 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (!mounted) return;
-      Navigator.pop(context); // Menutup loading spinner
+      Navigator.pop(context); // Menutup loading spinner setelah mendapat respon
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
+
+        // =========================================================================
+        // PERBAIKAN: Sinkronisasi user_id dan data nama_lengkap Baru dari Backend
+        // =========================================================================
+        final Map<String, dynamic> userProfile = responseData['data'] ?? {};
         
-        // KOREKSI BERHASIL: Mengambil isi object 'data' dari JSON backend (berisi nama, email, no_hp)
-        final Map<String, dynamic> userProfile = responseData['data']; 
+        // 1. Ekstraksi user_id dinamis
+        if (responseData['user'] != null && responseData['user']['id'] != null) {
+          userProfile['user_id'] = responseData['user']['id'].toString();
+        } else if (userProfile['id'] != null) {
+          userProfile['user_id'] = userProfile['id'].toString();
+        }
+
+        // 2. Ekstraksi nama_lengkap baru yang ditambahkan oleh backend temanmu
+        if (responseData['user'] != null && responseData['user']['nama_lengkap'] != null) {
+          userProfile['nama_lengkap'] = responseData['user']['nama_lengkap'].toString();
+        } else if (userProfile['nama_lengkap'] != null) {
+          userProfile['nama_lengkap'] = userProfile['nama_lengkap'].toString();
+        }
+        // =========================================================================
 
         if (!mounted) return;
         Navigator.pushReplacement(
@@ -163,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context); // Menutup loading spinner jika terjadi crash/error jaringan
+      Navigator.pop(context); // Menutup loading spinner jika koneksi gagal
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -211,7 +230,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Logo Aslab
                     Container(
                       padding: const EdgeInsets.all(4),
                       decoration: const BoxDecoration(
@@ -234,8 +252,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-
-                    // Judul Aslab Portal
                     Text(
                       "Aslab Portal",
                       style: TextStyle(
@@ -253,8 +269,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-
-                    // Deskripsi Sub-Judul Utama
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 30),
                       child: Text(
@@ -274,7 +288,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
-          // Tombol Kembali melayang di pojok kiri atas
           Positioned(
             top: MediaQuery.of(context).padding.top + 5,
             left: 10,
@@ -308,7 +321,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Label Email
                     const Text(
                       "Email Address",
                       style: TextStyle(
@@ -342,8 +354,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    // Label Password
                     const Text(
                       "Password",
                       style: TextStyle(
@@ -387,8 +397,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
-
-                    // Lupa Password Button
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
@@ -406,8 +414,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-
-                    // TOMBOL LOGIN UTAMA
                     SizedBox(
                       width: double.infinity,
                       height: 52,
@@ -431,8 +437,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 22),
-
-                    // Pembatas Garis Tengah "Or sign in with:"
                     Row(
                       children: [
                         Expanded(
@@ -460,8 +464,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     const SizedBox(height: 18),
-
-                    // BUTTON GOOGLE
                     _buildSocialMediaButton(
                       label: "Sign in with Google",
                       iconWidget: const Icon(
@@ -472,8 +474,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       onTap: () => _tampilkanPilihanAkunSosmed("Google"),
                     ),
                     const SizedBox(height: 12),
-
-                    // BUTTON APPLE
                     _buildSocialMediaButton(
                       label: "Sign in with Apple",
                       iconWidget: const Icon(
@@ -484,8 +484,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       onTap: () => _tampilkanPilihanAkunSosmed("Apple"),
                     ),
                     const SizedBox(height: 26),
-
-                    // Link ke Register
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -527,7 +525,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Widget Helper Pembuat Tombol Sosial Media (Google / Apple)
+  // --- WIDGET HELPER: TOMBOL SOSIAL MEDIA (Google/Apple) ---
   Widget _buildSocialMediaButton({
     required String label,
     required Widget iconWidget,

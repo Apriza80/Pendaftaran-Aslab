@@ -10,7 +10,7 @@ class JadwalScreen extends StatefulWidget {
 
 class _JadwalScreenState extends State<JadwalScreen> {
   // ===================================================================
-  // DATA DARI BACKEND (Sesuai 6 Poin Request Struktur Temanmu)
+  // DATA DARI BACKEND (Sesuai Struktur Request Orisinal)
   // ===================================================================
   final String _namaPendaftar = "Mahasiswa UMSIDA"; // 1. Nama
   final String _tanggalWawancara =
@@ -22,6 +22,11 @@ class _JadwalScreenState extends State<JadwalScreen> {
   final String _hasilKelulusan = "LOLOS"; // 5. Hasil
   final String _catatanAdmin =
       "Harap membawa cetak Kartu Ujian dan CV fisik saat wawancara offline. Datang 15 menit sebelum jadwal."; // 6. Catatan
+
+  // DATA DUMMY: Hasil Nilai Akhir CBT & Wawancara
+  final int _skorCbt = 85;
+  final int _skorWawancara = 90;
+  final String _gradeAkhir = "A";
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +112,6 @@ class _JadwalScreenState extends State<JadwalScreen> {
                     ],
                   ),
                   const Divider(height: 25, thickness: 1),
-                  // 1. DATA NAMA (Request Backend)
                   Row(
                     children: [
                       const Text(
@@ -190,6 +194,128 @@ class _JadwalScreenState extends State<JadwalScreen> {
               ),
             ),
 
+            // ===================================================================
+            // POSISI BARU: KETERANGAN HASIL NILAI CBT & WAWANCARA (DIBAWAH LINK MEETING)
+            // ===================================================================
+            if (isLolos) ...[
+              const SizedBox(height: 25),
+              const Text(
+                "Keterangan Hasil Nilai",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 15),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.02),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    // Nilai CBT
+                    Column(
+                      children: [
+                        const Text(
+                          "Skor CBT",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          "$_skorCbt",
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0D47A1),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      height: 30,
+                      width: 1,
+                      color: Colors.grey.shade200,
+                    ),
+                    // Nilai Wawancara
+                    Column(
+                      children: [
+                        const Text(
+                          "Wawancara",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          "$_skorWawancara",
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0D47A1),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      height: 30,
+                      width: 1,
+                      color: Colors.grey.shade200,
+                    ),
+                    // Hasil Grade Akhir
+                    Column(
+                      children: [
+                        const Text(
+                          "Hasil Akhir",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            "Grade $_gradeAkhir",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green.shade800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             const SizedBox(height: 25),
 
             // ================== CARD CATATAN ADMIN (Poin 6) ==================
@@ -225,8 +351,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
                         _catatanAdmin,
                         style: const TextStyle(
                           fontSize: 13,
-                          color:
-                              Colors.black54, // Perbaikan dari black64 kemarin
+                          color: Colors.black54,
                           height: 1.4,
                         ),
                       ),
@@ -281,11 +406,9 @@ class _JadwalScreenState extends State<JadwalScreen> {
             ),
           ),
 
-          // Logika mengubah teks "Lihat Map" menjadi TextButton yang responsif
           trailing == "Lihat Map"
               ? TextButton(
                   onPressed: () async {
-                    // Masukkan link tujuan peta kampus UMSIDA
                     const String googleMapsUrl = "https://maps.google.com";
                     final Uri url = Uri.parse(googleMapsUrl);
 
