@@ -266,17 +266,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         userId: widget.userData?['user_id']?.toString() ?? "1",
                       ),
                     ),
-                    const SizedBox(height: 12),
-
+                    // KODE BARU YANG BENAR DAN BERSIH:
+                    SizedBox(
+                      height: 12,
+                    ), // 👈 Hapus kata const di sini jika baris ini ikut merah
                     // MENU 2: Kartu Ujian (Terbuka setelah administrasi lolos)
                     _buildListMenuRow(
+                      // 👈 Pastikan TIDAK ADA kata const di depan sini
                       context,
                       title: "Cetak Kartu Ujian",
                       desc: "Unduh bukti resmi untuk syarat validasi tes",
                       icon: Icons.badge_rounded,
                       color: Colors.green,
                       isEnabled: tahapPendaftaran >= 1,
-                      destination: const KartuUjianScreen(),
+                      destination: KartuUjianScreen(
+                        userId: widget.userData?['user_id']?.toString() ?? "1",
+                      ),
                     ),
                     const SizedBox(height: 12),
 
@@ -806,7 +811,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       onTap: () {
                         Navigator.pop(context); // Tutup drawer biar rapi
                         _bukaWebsiteEksternal(
-                          "https://aslab-informatika.umsida.ac.id",
+                          "https://aslabinf.my.id/",
                         ); // MASUKKAN LINK WEB ASLAB DI SINI
                       },
                     ),

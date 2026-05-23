@@ -1,6 +1,6 @@
 class ApiConfig {
   // 1. Tulis IP dasar server temanmu di sini sebagai pusat kontrol
-  static const String baseUrl = "http://10.21.2.14:8000/api";
+  static const String baseUrl = "http://10.21.0.26:8000/api";
 
   // 2. Daftarkan pecahan pintu gerbang (endpoint) sesuai kebutuhan screen
   static const String login = "$baseUrl/login";
@@ -8,4 +8,8 @@ class ApiConfig {
   static const String pendaftaran = "$baseUrl/pendaftaran";
   static const String cbt = "$baseUrl/cbt";
   static const String jadwal = "$baseUrl/jadwal";
+  static const String kartu = "$baseUrl/cbtsessions";
+  static const String kartuUjian = "$baseUrl/kartu-ujian";
+
+
 }
